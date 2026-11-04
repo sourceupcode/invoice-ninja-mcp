@@ -12,6 +12,18 @@ on:
     tags: ["v*"]
   pull_request:
     branches: [master]
+    # A release PR changes exactly these three files and nothing else, so
+    # ignoring them means no run is created for it at all. This is the only
+    # mechanism that actually prevents the approval noise: GitHub gates a
+    # pull_request run for approval *before* any job-level `if` is evaluated
+    # (release-please authors the PR as github-actions[bot], which has no write
+    # access, so it is treated like an outside contributor), and runs parked in
+    # that state are not cancelled by `concurrency` -- they accumulate until
+    # approved. Filtering at the trigger means there is nothing to accumulate.
+    paths-ignore:
+      - CHANGELOG.md
+      - package.json
+      - .release-please-manifest.json
   workflow_dispatch:
     inputs:
       release_tag:

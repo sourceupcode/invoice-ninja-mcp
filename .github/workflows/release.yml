@@ -27,6 +27,16 @@ jobs:
           release-type: node
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+          # Falls back to the default token when the secret is absent, so this
+          # works unchanged today. Supplying RELEASE_PLEASE_TOKEN is the
+          # documented upgrade: it makes release PRs authored by a real account
+          # instead of github-actions[bot], which (a) stops GitHub gating their
+          # CI runs on approval -- the bot has no write access, so it is treated
+          # like an outside contributor -- and (b) lets the release/tag events
+          # actually trigger other workflows, since events caused by
+          # GITHUB_TOKEN are suppressed. The publish job below does not depend on
+          # either, because it reads tags from git in the same run.
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
 
   # Publishes an image for EVERY git release tag that does not have one yet, so
   # the package tags can never drift from the git tags again.

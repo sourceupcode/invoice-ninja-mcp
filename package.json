@@ -22,15 +22,28 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.27.1",
-    "zod": "^3.24.2"
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@types/node": "^22.13.10",
-    "shx": "^0.3.4",
-    "typescript": "^5.8.2"
+    "@types/node": "^26.6.6",
+    "shx": "^0.4.0",
+    "typescript": "^7.0.2"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.0.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "hono": "4.13.16",
+      "@hono/node-server": "2.1.6",
+      "fast-uri": "3.1.9",
+      "ip-address": "10.7.6",
+      "qs": "6.17.1",
+      "path-to-regexp": "8.4.2",
+      "body-parser": "2.4.0",
+      "express-rate-limit": "8.7.3",
+      "proxy-addr": "2.0.8"
+    }
   }
 }

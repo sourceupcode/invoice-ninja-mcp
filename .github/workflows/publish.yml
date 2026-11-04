@@ -83,6 +83,23 @@ jobs:
       - name: Compute tags
         id: tags
         run: |
+          # Print the v* tag pointing at a commit, polling because release-please
+          # creates the tag moments after the merge push that triggered this run.
+          # ls-remote queries the remote directly, so no tag fetch is needed.
+          poll_for_release_tag() {
+            local sha="$1" attempts="$2" delay="$3" i tag
+            for ((i = 1; i <= attempts; i++)); do
+              tag=$(git ls-remote --tags origin 'refs/tags/v*' 2>/dev/null \
+                | awk -v s="$sha" '$1 == s { sub("refs/tags/", "", $2); print $2; exit }')
+              if [[ -n "$tag" ]]; then
+                echo "$tag"
+                return 0
+              fi
+              sleep "$delay"
+            done
+            return 1
+          }
+
           IMAGE="$REGISTRY/$IMAGE_NAME"
           # The immutable per-commit tag is always produced, for every event.
           list="$IMAGE:sha-$(git rev-parse --short HEAD)"
@@ -103,19 +120,50 @@ jobs:
             push)
               if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
                 VERSION="${GITHUB_REF#refs/tags/}"
+              elif [[ "$GITHUB_REF" == refs/heads/* ]]; then
+                # A release PR merge reaches us as a plain push, and the `on:
+                # release` trigger will NOT fire for it: release-please creates
+                # the release using GITHUB_TOKEN, and GitHub suppresses workflow
+                # runs for events caused by that token. Verified -- v0.1.1 was
+                # published with no release-event run queued.
+                #
+                # So detect the release tag ourselves. release-please tags the
+                # merge commit itself (v0.1.1 -> 9ebacaf, the PR #3 merge), and
+                # the tag appears seconds after the push that woke us, hence the
+                # bounded poll. No tag within the window means this is an ordinary
+                # push and :main is the right tag.
+                # Check once first so an ordinary push pays no delay at all.
+                VERSION=$(poll_for_release_tag "$GITHUB_SHA" 1 0) || true
+                if [[ -z "$VERSION" ]]; then
+                  # Only a release-please merge can still gain a tag, so poll
+                  # just for those. Otherwise every push to master would idle
+                  # for the whole window waiting for a tag that never comes.
+                  subject=$(git log -1 --format=%s "$GITHUB_SHA")
+                  if [[ "$subject" == *release-please* || "$subject" == chore*master*release* ]]; then
+                    echo "release-please merge detected, polling for its tag..."
+                    VERSION=$(poll_for_release_tag "$GITHUB_SHA" 12 10) || true
+                  fi
+                fi
+                if [[ -z "$VERSION" ]]; then
+                  echo "no release tag on $GITHUB_SHA; treating as a plain push"
+                fi
               fi
               ;;
           esac
 
-          if [[ -n "$VERSION" ]]; then
-            # Push BOTH forms: the git tag form (v0.1.0) so the image tag
-            # matches the release and the Deployment can pin exactly what the
-            # release page shows, and the bare number (0.1.0) so it matches
-            # package.json's version field, which is what the Semver source of
-            # truth in the repo says.
-            list="$list $IMAGE:$VERSION $IMAGE:${VERSION#v} $IMAGE:latest"
-          elif [[ "$GITHUB_REF" == refs/heads/master ]]; then
+          # :main tracks the default branch head, including on a release merge
+          # (the merge commit IS the branch head), so it is decided separately
+          # from the version tags rather than as an either/or.
+          if [[ "$EVENT_NAME" == "push" && "$GITHUB_REF" == refs/heads/master ]]; then
             list="$list $IMAGE:main"
+          fi
+
+          if [[ -n "$VERSION" ]]; then
+            # Push BOTH forms: the git tag form (v0.1.1) so the image tag matches
+            # the release and a Deployment can pin exactly what the release page
+            # shows, and the bare number (0.1.1) so it matches package.json's
+            # version field, the Semver source of truth in the repo.
+            list="$list $IMAGE:$VERSION $IMAGE:${VERSION#v} $IMAGE:latest"
           fi
 
           # Deduplicate while preserving order (v0.1.0 yields duplicate-free

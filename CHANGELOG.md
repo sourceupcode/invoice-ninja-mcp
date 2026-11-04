@@ -1,6 +1,6 @@
 # Changelog
 
-## [2.0.0](https://github.com/sourceupcode/invoice-ninja-mcp/compare/v1.0.0...v2.0.0) (2026-11-04)
+## [0.1.0](https://github.com/sourceupcode/invoice-ninja-mcp/compare/v0.0.0...v0.1.0) (2026-11-04)
 
 
 ### ⚠ BREAKING CHANGES

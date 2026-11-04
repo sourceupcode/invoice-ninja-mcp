@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/sourceupcode/invoice-ninja-mcp/compare/v0.1.0...v0.1.1) (2026-11-04)
+
+
+### Bug Fixes
+
+* **ci:** publish semver image tags from the release event, not the tag push ([dbd38b3](https://github.com/sourceupcode/invoice-ninja-mcp/commit/dbd38b36bfb9cf9e1a25003cfeac5332b989c2aa))
+
 ## [0.1.0](https://github.com/sourceupcode/invoice-ninja-mcp/compare/v0.0.0...v0.1.0) (2026-11-04)
 
 

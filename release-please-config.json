@@ -67,5 +67,6 @@
   "packages": {
     ".": {}
   },
-  "release-as": "0.1.0"
+  "release-as": "0.1.0",
+  "bootstrap-sha": "3bffc1a36b47ca519653a545e46c9b1fda9dc1b6"
 }

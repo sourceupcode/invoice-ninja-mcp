@@ -1,0 +1,12 @@
+# Build context hygiene: dist/ MUST stay in the context (the Containerfile
+# copies the compiled output), but the local dependency tree and VCS data must
+# not be sent to the daemon.
+node_modules
+.git
+.github
+.claude
+research
+specs
+*.md
+.env
+.env.example

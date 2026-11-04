@@ -1,0 +1,137 @@
+name: "Build & Publish (podman)"
+
+on:
+  push:
+    branches: [master]
+    tags: ["v*"]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/invoice-ninja-mcp
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    outputs:
+      # Single source of truth for tags: consumed by build and push alike, so
+      # the two steps can never drift.
+      tags: ${{ steps.tags.outputs.list }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Build the app (tsc -> dist/)
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm run build
+
+      # podman, not docker/build-push-action. The repo builds and pushes with
+      # podman so the local and CI code paths are the same command.
+      - name: Install podman
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman
+          podman --version
+
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        run: |
+          printf '%s' "${GITHUB_TOKEN}" \
+            | podman login "$REGISTRY" --username "$GITHUB_ACTOR" --password-stdin
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REGISTRY: ${{ env.REGISTRY }}
+
+      - name: Compute tags
+        id: tags
+        run: |
+          IMAGE="$REGISTRY/$IMAGE_NAME"
+          list="$IMAGE:sha-$(git rev-parse --short HEAD)"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            list="$list $IMAGE:${GITHUB_REF#refs/tags/} $IMAGE:latest"
+          elif [[ "$GITHUB_REF" == refs/heads/master ]]; then
+            list="$list $IMAGE:main"
+          fi
+          echo "list=$list" >> "$GITHUB_OUTPUT"
+        env:
+          REGISTRY: ${{ env.REGISTRY }}
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+
+      - name: Build image (amd64 — every cluster node is x86_64)
+        # --platform only. podman rejects --arch together with --platform
+        # ("invalid --platform may not be used with --os, --arch, or --variant").
+        run: |
+          args=()
+          for t in $TAGS; do args+=(-t "$t"); done
+          podman build --platform linux/amd64 -f Containerfile "${args[@]}" .
+        env:
+          TAGS: ${{ steps.tags.outputs.list }}
+
+      # Proves the published artifact actually serves MCP and that the write
+      # guard is armed, using only the image that would be pushed.
+      - name: Smoke test the image
+        env:
+          TAGS: ${{ steps.tags.outputs.list }}
+        run: |
+          IMAGE="${REGISTRY}/${IMAGE_NAME}"
+          # Reference the first tag CI just produced; this is the same image id
+          # every later tag points at, so it is the artifact being published.
+          FIRST_TAG=$(echo "$TAGS" | awk '{print $1}')
+          podman run -d --name smoke -p 18800:8000 \
+            -e INVOICE_NINJA_URL=https://example.invalid \
+            -e INVOICE_NINJA_API_TOKEN=smoke \
+            "$FIRST_TAG"
+
+          ok=0
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:18800/healthz; then ok=1; break; fi
+            sleep 1
+          done
+          [ "$ok" = 1 ] || { echo "healthz never came up"; podman logs smoke; exit 1; }
+
+          SID=$(curl -fsS -D - -o /dev/null -X POST http://127.0.0.1:18800/mcp \
+            -H 'content-type: application/json' \
+            -H 'accept: application/json, text/event-stream' \
+            -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}' \
+            | tr -d '\r' | awk 'tolower($1)=="mcp-session-id:"{print $2}')
+          [ -n "$SID" ] || { echo "no mcp-session-id header"; podman logs smoke; exit 1; }
+
+          curl -fsS -X POST http://127.0.0.1:18800/mcp \
+            -H 'content-type: application/json' \
+            -H 'accept: application/json, text/event-stream' \
+            -H "mcp-session-id: $SID" \
+            -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"delete-invoice","arguments":{"id":"CI"}}}' \
+            | grep -q 'Blocked:' || { echo "write guard did NOT block delete-invoice"; exit 1; }
+          echo "smoke ok: streamable-http up, write guard armed"
+          podman rm -f smoke
+
+      - name: Push
+        if: github.event_name != 'pull_request'
+        run: |
+          for t in $TAGS; do
+            echo "pushing $t"
+            podman push "$t"
+          done
+        env:
+          TAGS: ${{ steps.tags.outputs.list }}

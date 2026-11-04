@@ -3,10 +3,23 @@ name: "Build & Publish (podman)"
 on:
   push:
     branches: [master]
+    # Tags are deliberately NOT matched here. release-please does not create a
+    # git tag as a separate "create" event: it creates the GitHub release and
+    # the tag atomically, which surfaces to Actions as a `release` event. The
+    # repo's event stream confirms it -- `gh api repos/.../events` shows a
+    # ReleaseEvent for v0.1.0 and no CreateEvent for any tag. So `tags: ["v*"]`
+    # below never fires and only ever produced sha-*/main images.
     tags: ["v*"]
+  release:
+    types: [published]
   pull_request:
     branches: [master]
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Publish an existing git tag as :<tag> and :latest (backfill)"
+        required: false
+        default: ""
 
 env:
   REGISTRY: ghcr.io
@@ -71,16 +84,51 @@ jobs:
         id: tags
         run: |
           IMAGE="$REGISTRY/$IMAGE_NAME"
+          # The immutable per-commit tag is always produced, for every event.
           list="$IMAGE:sha-$(git rev-parse --short HEAD)"
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
-            list="$list $IMAGE:${GITHUB_REF#refs/tags/} $IMAGE:latest"
+
+          # Resolve which release version (if any) this run represents.
+          # GITHUB_REF is refs/tags/... only for push events that matched the
+          # tags filter, which never happens for release-please (see the `on:`
+          # block). For a `release` event the version comes from the event
+          # payload; for workflow_dispatch it comes from the optional input.
+          VERSION=""
+          case "$EVENT_NAME" in
+            release)
+              VERSION="${GITHUB_REF#refs/tags/}"
+              ;;
+            workflow_dispatch)
+              VERSION="$DISPATCH_TAG"
+              ;;
+            push)
+              if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+                VERSION="${GITHUB_REF#refs/tags/}"
+              fi
+              ;;
+          esac
+
+          if [[ -n "$VERSION" ]]; then
+            # Push BOTH forms: the git tag form (v0.1.0) so the image tag
+            # matches the release and the Deployment can pin exactly what the
+            # release page shows, and the bare number (0.1.0) so it matches
+            # package.json's version field, which is what the Semver source of
+            # truth in the repo says.
+            list="$list $IMAGE:$VERSION $IMAGE:${VERSION#v} $IMAGE:latest"
           elif [[ "$GITHUB_REF" == refs/heads/master ]]; then
             list="$list $IMAGE:main"
           fi
+
+          # Deduplicate while preserving order (v0.1.0 yields duplicate-free
+          # output already, but keep it explicit so a malformed tag cannot push
+          # the same ref twice in one run).
+          list=$(printf '%s\n' $list | awk '!seen[$0]++' | paste -sd" " -)
           echo "list=$list" >> "$GITHUB_OUTPUT"
+          echo "publishing: $list"
         env:
           REGISTRY: ${{ env.REGISTRY }}
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_TAG: ${{ inputs.release_tag }}
 
       - name: Build image (amd64 — every cluster node is x86_64)
         # --platform only. podman rejects --arch together with --platform

@@ -28,8 +28,12 @@ env:
 # mid-flight can leave a tag pointing at a half-pushed manifest. Two pushes of
 # identical content are idempotent; a torn one is not.
 concurrency:
-  group: publish-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name != 'push' }}
+  group: publish-${{ github.workflow }}-${{ github.ref }}
+  # Only superseded pull-request builds are cancelled. A push must never be
+  # cancelled, and neither must workflow_dispatch: a dispatch shares the master
+  # branch ref with ordinary push runs, so the previous `!= 'push'` expression
+  # allowed a push to kill a manual backfill halfway through a GHCR push.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -37,6 +41,15 @@ permissions:
 
 jobs:
   build-and-push:
+    # A release PR only rewrites CHANGELOG.md, package.json and the manifest, and
+    # the image for that version is built by the Release workflow from the tag
+    # once the PR merges. Building it here is redundant, and because
+    # release-please refreshes these PRs several times in quick succession, the
+    # runs were cancelled before any job started and then surfaced as
+    # `action_required` (runs #21, #23, #25 -- all jobs=0, started==updated),
+    # which looks like pending approvals that do not exist. Skipping the branch
+    # leaves a single skipped check instead of accumulating them.
+    if: ${{ !(github.event_name == 'pull_request' && startsWith(github.head_ref, 'release-please--')) }}
     runs-on: ubuntu-latest
 
     outputs:

@@ -12,9 +12,13 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository_owner }}/invoice-ninja-mcp
 
+# cancel-in-progress is deliberately false on tag pushes: a release tag push
+# and the same-commit master push arrive together, and cancelling a GHCR push
+# mid-flight can leave a tag pointing at a half-pushed manifest. Two pushes of
+# identical content are idempotent; a torn one is not.
 concurrency:
   group: publish-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name != 'push' }}
 
 permissions:
   contents: read

@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.1.2](https://github.com/sourceupcode/invoice-ninja-mcp/compare/v0.1.1...v0.1.2) (2026-11-04)
+
+
+### Bug Fixes
+
+* **ci:** detect the release tag from the merge push, not the release event ([d74fece](https://github.com/sourceupcode/invoice-ninja-mcp/commit/d74fece4ff72cbf1ab92d4738930b3e3a5d457b3))
+* **ci:** prevent release-PR approval runs at the trigger, not the job ([d71393a](https://github.com/sourceupcode/invoice-ninja-mcp/commit/d71393a7a180855a4e96e41d0fe65f048be943d4))
+* **ci:** publish release images in the release run, reconciling every tag ([1a7e146](https://github.com/sourceupcode/invoice-ninja-mcp/commit/1a7e146fb8a0258c98d0546a3a682a3dcf5945c0))
+* **ci:** stop release-PR runs piling up as action_required ([1092a39](https://github.com/sourceupcode/invoice-ninja-mcp/commit/1092a391a3c678f3d50545dd3a02f058ae9affc2))
+* **deps:** upgrade every dependency to its current release ([692eedb](https://github.com/sourceupcode/invoice-ninja-mcp/commit/692eedb568c51b3c7424d9c0b7bfe066cd2b3ecb))
+
 ## [0.1.1](https://github.com/sourceupcode/invoice-ninja-mcp/compare/v0.1.0...v0.1.1) (2026-11-04)
 
 

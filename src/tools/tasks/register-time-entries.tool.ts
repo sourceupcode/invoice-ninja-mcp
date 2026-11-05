@@ -5,11 +5,11 @@ import { apiPost } from "../../client/api-client.js";
 // Register time entries as tasks, one task per entry.
 //
 // WHY ONE TASK PER ENTRY
-// An Invoice Ninja task has exactly one `description`, and its `time_log` is a
-// list of [start, end] pairs with nowhere to put per-entry text. So a task that
-// aggregates a month of work can carry only one note for the whole month — that
-// is precisely how a 22-entry Harvest month collapsed into two invoice lines
-// with no detail.
+// A task carries one `description`, but each time_log entry has its own note in
+// element [2]. One task per entry keeps the note attached to the time it belongs
+// to and makes the task list, invoices and time reports read the same way,
+// instead of one aggregated task whose single description has to speak for a
+// whole month.
 //
 // One task per entry keeps the note attached to the time it belongs to, and
 // because invoice line items reference a task through `task_id` (the invoice
@@ -71,7 +71,10 @@ const RegisterTimeEntriesTool = createTool(
       const body: Record<string, unknown> = {
         client_id,
         description: entry.notes,
-        time_log: JSON.stringify([[start, end]]),
+        // Four elements: [start, end, note, billable]. Element [2] is the
+        // per-entry note slot that StoreTaskRequest validates as a string, and
+        // [3] is the billable flag. Writing [start, end] alone drops the note.
+        time_log: JSON.stringify([[start, end, entry.notes, true]]),
       };
       if (project_id) body.project_id = project_id;
       if (invoice_id) body.invoice_id = invoice_id;

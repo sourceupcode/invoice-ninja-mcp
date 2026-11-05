@@ -117,7 +117,8 @@ const ListInvoiceTasksTool = createTool(
     const secondsOf = (t: Record<string, unknown>) => totalSeconds(t.time_log, now);
 
     const onHours = onInvoice.reduce((s, t) => s + secondsOf(t), 0);
-    const onValue = onInvoice.reduce((s, t) => s + (secondsOf(t) / 3600) * Number(t.rate ?? 0), 0);
+    const billableOf = (t: Record<string, unknown>) => totalSeconds(t.time_log, now, true);
+    const onValue = onInvoice.reduce((s, t) => s + (billableOf(t) / 3600) * Number(t.rate ?? 0), 0);
 
     out.push(
       `Tasks on this invoice: ${onInvoice.length}` +
@@ -150,7 +151,7 @@ const ListInvoiceTasksTool = createTool(
     // ---- client-adjacent, clearly separated so it cannot be mistaken for invoice content ----
     if (include_uninvoiced && adjacent.length > 0) {
       const adjHours = adjacent.reduce((s, t) => s + secondsOf(t), 0);
-      const adjValue = adjacent.reduce((s, t) => s + (secondsOf(t) / 3600) * Number(t.rate ?? 0), 0);
+      const adjValue = adjacent.reduce((s, t) => s + (totalSeconds(t.time_log, now, true) / 3600) * Number(t.rate ?? 0), 0);
       out.push(
         "",
         `== NOT on this invoice — same client, uninvoiced or billed elsewhere (${adjacent.length}) ==`,

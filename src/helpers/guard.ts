@@ -14,6 +14,11 @@
 // Default-deny: anything not explicitly allow-listed is refused. A future
 // upstream tool that adds a mutation is blocked the day it is vendored,
 // instead of being silently allowed.
+//
+// Precedence: INVOICE_NINJA_ALLOW_WRITES (everything) > INVOICE_NINJA_DENIED_TOOLS
+// (named refusals) > INVOICE_NINJA_ALLOWED_TOOLS (named exceptions) > default
+// denial. So an operator can enable one mutation, e.g. register-time-entries,
+// without unlocking invoice writes.
 
 const DEFAULT_DENIED = [
   "delete-invoice",
@@ -65,11 +70,14 @@ export function checkTool(name: string): GuardResult {
     return { allowed: false, reason: `tool '${name}' is denied by INVOICE_NINJA_DENIED_TOOLS` };
   }
 
+  // INVOICE_NINJA_ALLOWED_TOOLS is additive: it carves named exceptions out of
+  // the default denial. It previously acted as a replacement whitelist, so
+  // setting it to permit one mutation silently refused every tool that was not
+  // listed -- including all the read tools. That made "allow just this one
+  // thing" impossible, which is exactly what an operator wants to do here.
   const allowed = parseList(process.env.INVOICE_NINJA_ALLOWED_TOOLS);
-  if (allowed.length) {
-    return allowed.includes(name)
-      ? { allowed: true }
-      : { allowed: false, reason: `tool '${name}' is not in INVOICE_NINJA_ALLOWED_TOOLS` };
+  if (allowed.includes(name)) {
+    return { allowed: true };
   }
 
   if (DEFAULT_DENIED.includes(name)) {

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.1](https://github.com/sourceupcode/invoice-ninja-mcp/compare/v0.4.0...v0.4.1) (2026-11-05)
+
+
+### Bug Fixes
+
+* **guard:** make INVOICE_NINJA_ALLOWED_TOOLS additive, not a replacement list ([e7790a0](https://github.com/sourceupcode/invoice-ninja-mcp/commit/e7790a0230c1359614c0974dee45ed5e781b31bf))
+* **tasks:** write the per-entry note into the time_log note slot ([64af881](https://github.com/sourceupcode/invoice-ninja-mcp/commit/64af881af5f016a035b52820c11c62bb13f6e6a2))
+
 ## [0.4.0](https://github.com/sourceupcode/invoice-ninja-mcp/compare/v0.3.0...v0.4.0) (2026-11-05)
 
 

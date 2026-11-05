@@ -1,11 +1,11 @@
 import { z } from "zod";
 import { createTool } from "../../helpers/create-tool.js";
-import { apiPut } from "../../client/api-client.js";
+import { apiGet, apiPut } from "../../client/api-client.js";
 import { formatDuration, totalSeconds } from "../../helpers/task-time.js";
 
 const UpdateTaskTool = createTool(
   "update-task",
-  "Update a task in Invoice Ninja. Only provide the fields to change. Use invoice_id to attach the task to an invoice (or an empty string to detach it), and is_running/time_log for time tracking.",
+  "Update a task in Invoice Ninja. Only provide the fields to change (the existing time log is preserved automatically). Use invoice_id to attach the task to an invoice (or an empty string to detach it), and is_running/time_log for time tracking.",
   {
     id: z.string().describe("The hashed task ID"),
     description: z.string().optional().describe("New description"),
@@ -32,6 +32,34 @@ const UpdateTaskTool = createTool(
     const body: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(rest)) {
       if (v !== undefined) body[k] = v;
+    }
+
+    // CRITICAL: this API does not treat an omitted time_log as "leave it alone".
+    // PUT /tasks/{id} with any payload that omits time_log writes an EMPTY log,
+    // destroying every logged hour on the task. Verified directly: create a task
+    // with one entry, PUT {"number":"x"}, and the response returns time_log "[]".
+    // So the current log is read first and always sent back unless the caller is
+    // explicitly replacing it.
+    if (body.time_log === undefined) {
+      const current = await apiGet<{ data: Record<string, unknown> }>(`/tasks/${id}`);
+      if (current.isError) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Refusing to update: could not read the existing task to preserve its time log (${current.error}).`,
+            },
+          ],
+          isError: true,
+        };
+      }
+      const existing = current.result.data;
+      body.time_log = existing.time_log ?? "";
+      // The repository resets a non-numeric rate to 0 when none is supplied, so
+      // echo the current rate back to avoid silently repricing the task.
+      if (body.rate === undefined && existing.rate !== undefined && existing.rate !== null) {
+        body.rate = existing.rate;
+      }
     }
 
     if (Object.keys(body).length === 0) {

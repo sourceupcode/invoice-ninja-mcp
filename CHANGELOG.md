@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/sourceupcode/invoice-ninja-mcp/compare/v0.1.2...v0.2.0) (2026-11-05)
+
+
+### Features
+
+* **tasks:** add task tools, including tasks-for-an-invoice ([9dcc510](https://github.com/sourceupcode/invoice-ninja-mcp/commit/9dcc510b58cd6b424a38f2c4cc2c6c274d0e12ed))
+
 ## [0.1.2](https://github.com/sourceupcode/invoice-ninja-mcp/compare/v0.1.1...v0.1.2) (2026-11-04)
 
 

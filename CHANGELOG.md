@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/sourceupcode/invoice-ninja-mcp/compare/v0.2.0...v0.3.0) (2026-11-05)
+
+
+### Features
+
+* **tasks:** register time entries as individual tasks, keeping their notes ([7a91193](https://github.com/sourceupcode/invoice-ninja-mcp/commit/7a911930a26e6b5a9249ba4069c286955c76b641))
+
 ## [0.2.0](https://github.com/sourceupcode/invoice-ninja-mcp/compare/v0.1.2...v0.2.0) (2026-11-05)
 
 

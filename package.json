@@ -1,6 +1,6 @@
 {
   "name": "invoice-ninja-mcp-server",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "MCP server for Invoice Ninja - create invoices, manage clients, payments, quotes, and expenses",
   "type": "module",
   "main": "dist/index.js",

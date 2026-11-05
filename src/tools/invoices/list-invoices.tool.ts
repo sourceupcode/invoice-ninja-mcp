@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createTool } from "../../helpers/create-tool.js";
 import { apiGet } from "../../client/api-client.js";
+import { formatPagination } from "../../helpers/pagination.js";
 
 const ListInvoicesTool = createTool(
   "list-invoices",
@@ -56,10 +57,7 @@ const ListInvoicesTool = createTool(
       ].join(" | ");
     });
 
-    const meta = response.result.meta as Record<string, unknown> | undefined;
-    const header = meta
-      ? `Showing page ${meta.current_page} of ${meta.last_page} (${meta.total} total)`
-      : `Found ${invoices.length} invoices`;
+    const header = formatPagination(response.result.meta, invoices.length, "invoices");
 
     return {
       content: [{ type: "text" as const, text: `${header}\n\n${lines.join("\n")}` }],

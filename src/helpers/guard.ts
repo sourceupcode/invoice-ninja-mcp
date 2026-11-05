@@ -29,6 +29,14 @@ const DEFAULT_DENIED = [
   "update-quote",
   "create-expense",
   "send-invoice-email",
+  // Task mutations are blocked for the same reason as invoices: a task can be
+  // attached to an invoice, its rate and logged time feed billed amounts, and
+  // stop/start rewrite the time log. Billing records are not an agent's to edit
+  // without an explicit decision (INVOICE_NINJA_ALLOW_WRITES).
+  "create-task",
+  "update-task",
+  "delete-task",
+  "bulk-task-action",
 ];
 
 function parseList(raw: string | undefined): string[] {

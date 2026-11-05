@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createTool } from "../../helpers/create-tool.js";
 import { apiGet } from "../../client/api-client.js";
+import { formatPagination } from "../../helpers/pagination.js";
 
 const ListProductsTool = createTool(
   "list-products",
@@ -45,10 +46,7 @@ const ListProductsTool = createTool(
       ].join(" | "),
     );
 
-    const meta = response.result.meta as Record<string, unknown> | undefined;
-    const header = meta
-      ? `Showing page ${meta.current_page} of ${meta.last_page} (${meta.total} total)`
-      : `Found ${products.length} products`;
+    const header = formatPagination(response.result.meta, products.length, "products");
 
     return {
       content: [{ type: "text" as const, text: `${header}\n\n${lines.join("\n")}` }],

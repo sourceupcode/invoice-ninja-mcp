@@ -8,6 +8,7 @@ import { ProductTools } from "./products/index.js";
 import { PaymentTools } from "./payments/index.js";
 import { QuoteTools } from "./quotes/index.js";
 import { ExpenseTools } from "./expenses/index.js";
+import { TaskTools } from "./tasks/index.js";
 
 function registerGroup(server: McpServer, tools: Array<() => ToolDefinition>) {
   tools
@@ -23,4 +24,5 @@ export function registerAllTools(server: McpServer) {
   registerGroup(server, PaymentTools);
   registerGroup(server, QuoteTools);
   registerGroup(server, ExpenseTools);
+  registerGroup(server, TaskTools);
 }

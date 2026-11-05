@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/sourceupcode/invoice-ninja-mcp/compare/v0.4.1...v0.5.0) (2026-11-05)
+
+
+### Features
+
+* **invoices:** add update-invoice-item for safe single-line edits ([a5feae3](https://github.com/sourceupcode/invoice-ninja-mcp/commit/a5feae383b4affa9a32ea229bed7f1673889210b))
+
 ## [0.4.1](https://github.com/sourceupcode/invoice-ninja-mcp/compare/v0.4.0...v0.4.1) (2026-11-05)
 
 

@@ -12,7 +12,7 @@ const GetTaskTool = createTool(
   },
   async ({ id }) => {
     const response = await apiGet<{ data: Record<string, unknown> }>(`/tasks/${id}`, {
-      include: "client,project",
+      include: "client,project,status,assigned_user",
     });
 
     if (response.isError) {
@@ -25,6 +25,11 @@ const GetTaskTool = createTool(
     const t = response.result.data;
     const client = t.client as Record<string, unknown> | undefined;
     const project = t.project as Record<string, unknown> | undefined;
+    const status = t.status as Record<string, unknown> | undefined;
+    const user = t.assigned_user as Record<string, unknown> | undefined;
+    const who = user
+      ? [user.first_name, user.last_name].filter(Boolean).join(" ") || String(user.email ?? "")
+      : "";
     const duration = totalSeconds(t.time_log);
     const rate = Number(t.rate ?? 0);
 
@@ -35,14 +40,14 @@ const GetTaskTool = createTool(
       `Client: ${client?.display_name || t.client_id || "N/A"}`,
       `Project: ${project?.name || t.project_id || "N/A"}`,
       `Invoice: ${t.invoice_id || "(not invoiced)"}`,
-      `Status: ${t.status_id}`,
-      `Assigned user: ${t.assigned_user_id || "N/A"}`,
+      `Status: ${status ? status.name : t.status_id}`,
+      `Assigned user: ${who || t.assigned_user_id || "N/A"}`,
       `Rate: ${rate || "N/A"}`,
       `Logged: ${formatDuration(duration)} (${duration}s)`,
       `Amount: ${rate ? ((duration / 3600) * rate).toFixed(2) : "N/A"}`,
       `Running: ${t.is_running ? "yes" : "no"}`,
       `Due: ${t.due_date || "N/A"}`,
-      `Estimated: ${t.estimated_duration || "N/A"}`,
+      `Estimated: ${t.estimated_duration ? formatDuration(Number(t.estimated_duration)) : "N/A"}`,
       `Time log:\n  ${describeTimeLog(t.time_log)}`,
     ].join("\n");
 

@@ -31,7 +31,12 @@ const ListTasksTool = createTool(
     const params: Record<string, string> = {
       per_page: String(per_page ?? 20),
       page: String(page ?? 1),
-      include: "client,project",
+      // Without is_deleted=0 the API returns soft-deleted tasks too (measured:
+      // total 5 vs 4), so deleted work would silently reappear in listings.
+      is_deleted: "0",
+      // Names for status and assignee come from the API; without these includes
+      // the payload only carries hashes and the tool has to show raw ids.
+      include: "client,project,status,assigned_user",
     };
     if (client_id) params.client_id = client_id;
     if (project_id) params.project_id = project_id;
@@ -59,18 +64,38 @@ const ListTasksTool = createTool(
     const lines = tasks.map((t) => {
       const client = t.client as Record<string, unknown> | undefined;
       const project = t.project as Record<string, unknown> | undefined;
-      return [
-        `ID: ${t.id}`,
-        `Number: ${t.number || "(none)"}`,
-        `Description: ${String(t.description || "").split("\n")[0].slice(0, 60)}`,
-        `Client: ${client?.display_name || t.client_id || "N/A"}`,
-        `Project: ${project?.name || t.project_id || "N/A"}`,
-        `Invoice: ${t.invoice_id || "(not invoiced)"}`,
-        `Status: ${t.status_id}`,
-        `Logged: ${formatDuration(totalSeconds(t.time_log))}`,
-        `Rate: ${t.rate ?? "N/A"}`,
-        `Running: ${t.is_running ? "yes" : "no"}`,
-      ].join(" | ");
+      const status = t.status as Record<string, unknown> | undefined;
+      const user = t.assigned_user as Record<string, unknown> | undefined;
+      const who = user
+        ? [user.first_name, user.last_name].filter(Boolean).join(" ") || String(user.email ?? "")
+        : "";
+      const rows = [
+        [
+          `ID: ${t.id}`,
+          `Number: ${String(t.number || "(none)").trim()}`,
+          `Description: ${String(t.description || "").split("\n")[0].slice(0, 60)}`,
+          `Client: ${client?.display_name || t.client_id || "N/A"}`,
+          `Project: ${project?.name || t.project_id || "N/A"}`,
+          `Invoice: ${t.invoice_id || "(not invoiced)"}`,
+          // Status name rather than only the hash, now that it is included.
+          `Status: ${status ? status.name : t.status_id}`,
+          `Logged: ${formatDuration(totalSeconds(t.time_log))}`,
+          `Rate: ${t.rate ?? "N/A"}`,
+          `Running: ${t.is_running ? "yes" : "no"}`,
+        ].join(" | "),
+      ];
+      // estimated_duration is seconds; printing it raw reads as a huge number
+      // (e.g. 7257600 looked like "2016h"), so format it and mark the ones that
+      // cannot plausibly be an estimate.
+      if (t.estimated_duration) {
+        const secs = Number(t.estimated_duration);
+        const hrs = secs / 3600;
+        const logged = totalSeconds(t.time_log);
+        const flag = hrs > 1000 && hrs > (logged / 3600) * 4 ? " (implausible — check the task)" : "";
+        rows.push(`        Estimated: ${formatDuration(secs)}${flag}`);
+      }
+      if (who) rows.push(`        Assigned: ${who}`);
+      return rows.join("\n");
     });
 
     return {

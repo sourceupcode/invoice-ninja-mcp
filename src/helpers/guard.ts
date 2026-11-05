@@ -37,6 +37,7 @@ const DEFAULT_DENIED = [
   "update-task",
   "delete-task",
   "bulk-task-action",
+  "register-time-entries",
 ];
 
 function parseList(raw: string | undefined): string[] {

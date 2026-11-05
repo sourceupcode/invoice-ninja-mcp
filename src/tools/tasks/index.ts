@@ -6,6 +6,7 @@ import CreateTaskTool from "./create-task.tool.js";
 import UpdateTaskTool from "./update-task.tool.js";
 import DeleteTaskTool from "./delete-task.tool.js";
 import BulkTaskActionTool from "./bulk-task-action.tool.js";
+import RegisterTimeEntriesTool from "./register-time-entries.tool.js";
 
 export const TaskTools = [
   ListTasksTool,
@@ -16,4 +17,5 @@ export const TaskTools = [
   UpdateTaskTool,
   DeleteTaskTool,
   BulkTaskActionTool,
+  RegisterTimeEntriesTool,
 ];

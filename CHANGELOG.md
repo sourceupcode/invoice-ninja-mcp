@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/sourceupcode/invoice-ninja-mcp/compare/v0.3.0...v0.4.0) (2026-11-05)
+
+
+### Features
+
+* **tasks:** show the invoice's itemized line items, and fix four display defects ([ed51b97](https://github.com/sourceupcode/invoice-ninja-mcp/commit/ed51b97dd4c3949d5d9a0bc31065f54cdd81ed7f))
+
 ## [0.3.0](https://github.com/sourceupcode/invoice-ninja-mcp/compare/v0.2.0...v0.3.0) (2026-11-05)
 
 

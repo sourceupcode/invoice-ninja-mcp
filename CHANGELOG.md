@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.1](https://github.com/sourceupcode/invoice-ninja-mcp/compare/v0.5.0...v0.5.1) (2026-11-11)
+
+
+### Bug Fixes
+
+* **tasks:** always send the existing time_log when updating a task ([3139cb5](https://github.com/sourceupcode/invoice-ninja-mcp/commit/3139cb517374c897d6654ed11f209ba8560c3a84))
+* **tasks:** carry the task description into time_log entry notes ([#11](https://github.com/sourceupcode/invoice-ninja-mcp/issues/11)) ([459a355](https://github.com/sourceupcode/invoice-ninja-mcp/commit/459a355969590c5bac0fb6a40b1896ed38e88c8d))
+
 ## [0.5.0](https://github.com/sourceupcode/invoice-ninja-mcp/compare/v0.4.1...v0.5.0) (2026-11-05)
 
 

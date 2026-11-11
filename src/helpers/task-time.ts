@@ -76,6 +76,33 @@ export function isRunning(raw: unknown): boolean {
   return parseTimeLog(raw).some((e) => e.end === null);
 }
 
+/**
+ * Re-serialize a time log so every entry carries a note in slot [2].
+ *
+ * The web UI's weekly/monthly task views seed their Description popover from
+ * the per-entry note, NOT from task.description (ui src/pages/tasks/weekly/
+ * Weekly.tsx: `edit.description ?? existing?.[2] ?? ''`). Entries written as
+ * bare [start, end] pairs therefore show a blank Description in those views
+ * even though the task details page shows task.description. Filling empty
+ * notes with the task description keeps every view consistent.
+ *
+ * Existing non-empty notes are preserved; running entries keep their "" end;
+ * billable defaults to true. Returns "[]" for empty/unparseable input.
+ */
+export function timeLogWithNotes(raw: unknown, fallbackNote: string): string {
+  const entries = parseTimeLog(raw);
+  if (entries.length === 0) return "[]";
+  const note = typeof fallbackNote === "string" ? fallbackNote : "";
+  return JSON.stringify(
+    entries.map((e) => [
+      e.start,
+      e.end === null ? "" : e.end,
+      e.note !== "" ? e.note : note,
+      e.billable,
+    ]),
+  );
+}
+
 export function formatDuration(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds <= 0) return "0h";
   const h = Math.floor(seconds / 3600);

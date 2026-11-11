@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createTool } from "../../helpers/create-tool.js";
 import { apiPost } from "../../client/api-client.js";
+import { timeLogWithNotes } from "../../helpers/task-time.js";
 
 const CreateTaskTool = createTool(
   "create-task",
@@ -41,6 +42,12 @@ const CreateTaskTool = createTool(
       "assigned_user_id",
     ] as const) {
       if (args[key] !== undefined) body[key] = args[key];
+    }
+
+    // Weekly/monthly views read the per-entry note (time_log slot [2]), not
+    // task.description — bare [start,end] pairs show a blank Description.
+    if (body.time_log !== undefined) {
+      body.time_log = timeLogWithNotes(body.time_log, String(args.description ?? ""));
     }
 
     const response = await apiPost<{ data: Record<string, unknown> }>("/tasks", body);

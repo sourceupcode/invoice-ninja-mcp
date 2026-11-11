@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createTool } from "../../helpers/create-tool.js";
 import { apiGet, apiPut } from "../../client/api-client.js";
-import { formatDuration, totalSeconds } from "../../helpers/task-time.js";
+import { formatDuration, timeLogWithNotes, totalSeconds } from "../../helpers/task-time.js";
 
 const UpdateTaskTool = createTool(
   "update-task",
@@ -34,40 +34,49 @@ const UpdateTaskTool = createTool(
       if (v !== undefined) body[k] = v;
     }
 
-    // CRITICAL: this API does not treat an omitted time_log as "leave it alone".
-    // PUT /tasks/{id} with any payload that omits time_log writes an EMPTY log,
-    // destroying every logged hour on the task. Verified directly: create a task
-    // with one entry, PUT {"number":"x"}, and the response returns time_log "[]".
-    // So the current log is read first and always sent back unless the caller is
-    // explicitly replacing it.
-    if (body.time_log === undefined) {
-      const current = await apiGet<{ data: Record<string, unknown> }>(`/tasks/${id}`);
-      if (current.isError) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: `Refusing to update: could not read the existing task to preserve its time log (${current.error}).`,
-            },
-          ],
-          isError: true,
-        };
-      }
-      const existing = current.result.data;
-      body.time_log = existing.time_log ?? "";
-      // The repository resets a non-numeric rate to 0 when none is supplied, so
-      // echo the current rate back to avoid silently repricing the task.
-      if (body.rate === undefined && existing.rate !== undefined && existing.rate !== null) {
-        body.rate = existing.rate;
-      }
-    }
-
     if (Object.keys(body).length === 0) {
       return {
         content: [{ type: "text" as const, text: "No fields to update were provided." }],
         isError: true,
       };
     }
+
+    // CRITICAL: this API does not treat omitted fields as "leave them alone".
+    // PUT /tasks/{id} with a payload that omits time_log writes an EMPTY log,
+    // destroying every logged hour; omitting number regenerates it (FD-1295
+    // became 0023). Verified directly against a live instance. So the current
+    // task is read first and time_log/number/rate are always sent back unless
+    // the caller is explicitly replacing them.
+    const current = await apiGet<{ data: Record<string, unknown> }>(`/tasks/${id}`);
+    if (current.isError) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `Refusing to update: could not read the existing task to preserve its time log (${current.error}).`,
+          },
+        ],
+        isError: true,
+      };
+    }
+    const existing = current.result.data;
+    if (body.time_log === undefined) body.time_log = existing.time_log ?? "";
+    if (body.number === undefined && existing.number) body.number = existing.number;
+    // The repository resets a non-numeric rate to 0 when none is supplied, so
+    // echo the current rate back to avoid silently repricing the task.
+    if (body.rate === undefined && existing.rate !== undefined && existing.rate !== null) {
+      body.rate = existing.rate;
+    }
+
+    // Weekly/monthly views read the per-entry note (time_log slot [2]), not
+    // task.description — fill empty notes so the Description popover shows the
+    // task's description. Prefer the description being written in this same
+    // request; otherwise fall back to the existing one.
+    const noteFallback =
+      body.description !== undefined
+        ? String(body.description)
+        : String(existing.description ?? "");
+    body.time_log = timeLogWithNotes(body.time_log, noteFallback);
 
     const response = await apiPut<{ data: Record<string, unknown> }>(`/tasks/${id}`, body);
     if (response.isError) {

@@ -25,6 +25,11 @@ This is the **primary reason** the MCP server exists.
 ### Line Item Structure
 Each line item has: `product_key` (optional name), `notes` (description), `cost` (unit price), `quantity`, and optional tax/discount fields. Tax is per-line (`tax_name1`/`tax_rate1`) or per-invoice.
 
+### Adding a Line Without Replacing the Rest (`add-invoice-line`)
+`update-invoice`'s `line_items` field replaces the whole array, and its schema keeps only `product_key`, `notes`, `cost`, `quantity`, tax and discount -- any existing line sent through it loses its `task_id`, `date` and `unit_code`. `add-invoice-line` instead reads the invoice, appends one new row to the raw `line_items` array exactly as the API returned it, and writes the whole array back, so every untouched line survives byte-for-byte.
+
+**Draft-only.** The invoice's `status_id` must be `1` (Draft); any other status is refused. Adding a line always changes the invoice total, so `confirm_amount_change: true` is required or the add is refused with the before/after amounts shown. The new row can be appended at the end or inserted after an existing line (`after_line`, 1-based), and `append_private_notes` can add to the invoice's private notes in the same write.
+
 ### Status IDs
 Invoice Ninja uses numeric status IDs:
 - 1 = Draft
@@ -80,6 +85,7 @@ Every invoice response includes:
 | `get-invoice` | GET /invoices/:id?include=client | Full details with line items and links |
 | `create-invoice` | POST /invoices | Create draft with line items |
 | `update-invoice` | PUT /invoices/:id | Update fields (line_items replaces) |
+| `add-invoice-line` | GET+PUT /invoices/:id | Append one line item without replacing existing ones; Draft only |
 | `delete-invoice` | DELETE /invoices/:id | Soft-delete |
 | `send-invoice-email` | POST /emails | Email to client, marks as sent |
 | `bulk-invoice-action` | POST /invoices/bulk | mark_sent, mark_paid, archive, restore, delete, cancel, clone_to_quote |

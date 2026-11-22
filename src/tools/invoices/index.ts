@@ -1,6 +1,7 @@
 import ListInvoicesTool from "./list-invoices.tool.js";
 import ListInvoiceItemsTool from "./list-invoice-items.tool.js";
 import UpdateInvoiceItemTool from "./update-invoice-item.tool.js";
+import AddInvoiceLineTool from "./add-invoice-line.tool.js";
 import GetInvoiceTool from "./get-invoice.tool.js";
 import CreateInvoiceTool from "./create-invoice.tool.js";
 import UpdateInvoiceTool from "./update-invoice.tool.js";
@@ -12,6 +13,7 @@ export const InvoiceTools = [
   ListInvoicesTool,
   ListInvoiceItemsTool,
   UpdateInvoiceItemTool,
+  AddInvoiceLineTool,
   GetInvoiceTool,
   CreateInvoiceTool,
   UpdateInvoiceTool,

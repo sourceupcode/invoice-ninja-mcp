@@ -3,9 +3,23 @@ import assert from "node:assert/strict";
 import { appendLineItem, appendPrivateNote, addLineGuard } from "./invoice-items.ts";
 
 test("appendLineItem leaves existing rows untouched", () => {
-  const items = [{ notes: "a", quantity: 1, cost: 175, task_id: "T1", date: "2026-11-20", unit_code: "HUR" }];
+  const items = [{
+    notes: "a",
+    quantity: 1,
+    cost: 175,
+    task_id: "T1",
+    date: "2026-11-20",
+    unit_code: "HUR",
+    tax_name1: "Tax A",
+    custom_value1: "custom-data",
+  }];
   const out = appendLineItem(items, { notes: "b", quantity: 2, cost: 175 });
+  assert.equal(out[0], items[0]);
   assert.deepEqual(out[0], items[0]);
+  assert.ok("tax_name1" in out[0]);
+  assert.equal(out[0].tax_name1, "Tax A");
+  assert.ok("custom_value1" in out[0]);
+  assert.equal(out[0].custom_value1, "custom-data");
   assert.equal(out.length, 2);
 });
 

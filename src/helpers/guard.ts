@@ -44,6 +44,7 @@ const DEFAULT_DENIED = [
   "bulk-task-action",
   "register-time-entries",
   "update-invoice-item",
+  "add-invoice-line",
 ];
 
 function parseList(raw: string | undefined): string[] {

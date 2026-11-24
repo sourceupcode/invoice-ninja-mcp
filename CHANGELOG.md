@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/sourceupcode/invoice-ninja-mcp/compare/v0.6.2...v0.7.0) (2026-11-24)
+
+
+### Features
+
+* **invoices:** let add-invoice-line set the row's item type ([cdf4f53](https://github.com/sourceupcode/invoice-ninja-mcp/commit/cdf4f53b3402f2930735b2413e4d4b8335ecd398))
+
 ## [0.6.2](https://github.com/sourceupcode/invoice-ninja-mcp/compare/v0.6.1...v0.6.2) (2026-11-24)
 
 

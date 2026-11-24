@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createTool } from "../../helpers/create-tool.js";
 import { apiGet } from "../../client/api-client.js";
-import { describeTimeLog, formatDuration, totalSeconds } from "../../helpers/task-time.js";
+import { describeTimeLog, formatDuration, parseTimeLog, totalSeconds } from "../../helpers/task-time.js";
 
 
 const GetTaskTool = createTool(
@@ -48,7 +48,10 @@ const GetTaskTool = createTool(
       `Running: ${t.is_running ? "yes" : "no"}`,
       `Due: ${t.due_date || "N/A"}`,
       `Estimated: ${t.estimated_duration ? formatDuration(Number(t.estimated_duration)) : "N/A"}`,
-      `Time log:\n  ${describeTimeLog(t.time_log)}`,
+      // The instance stores unix seconds; rendering them in UTC next to an
+      // operator's local-time range is how a write was judged a collision when
+      // it was not. Label it instead of leaving the reader to guess.
+      `Time log (${parseTimeLog(t.time_log).length} entr(ies), times in UTC):\n  ${describeTimeLog(t.time_log)}`,
     ].join("\n");
 
     return { content: [{ type: "text" as const, text: body }] };

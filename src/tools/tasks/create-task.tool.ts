@@ -23,7 +23,11 @@ const CreateTaskTool = createTool(
     time_log: z
       .string()
       .optional()
-      .describe('JSON array of [start,end] unix-second pairs, e.g. "[[1793613600,1793628000]]"'),
+      .describe(
+        'JSON array of entries, each [start, end, note, billable] — start/end are unix ' +
+          'seconds, end is "" for a running timer, billable defaults to true. An entry left ' +
+          'with no note is filled with the task description, so write the note for each block.',
+      ),
     due_date: z.string().optional().describe("Due date YYYY-MM-DD"),
     estimated_duration: z.number().optional().describe("Estimated duration in seconds"),
     assigned_user_id: z.string().optional().describe("Assigned user hashed ID"),

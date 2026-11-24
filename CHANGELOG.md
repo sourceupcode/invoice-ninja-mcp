@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.6.2](https://github.com/sourceupcode/invoice-ninja-mcp/compare/v0.6.1...v0.6.2) (2026-11-24)
+
+
+### Bug Fixes
+
+* **ci:** let packageManager pick the pnpm, not the action ([73ce9a1](https://github.com/sourceupcode/invoice-ninja-mcp/commit/73ce9a19ddc3bafb31d6a13f30a08f3a44b0d872))
+* **invoices:** show what backs a line, and stop a stale cent failing every edit ([85ad0bd](https://github.com/sourceupcode/invoice-ninja-mcp/commit/85ad0bd6b53c24e8eabc30be717a29ee9fc03878))
+* **repo:** pin the package manager so a local pnpm cannot rewrite the lockfile ([c2574e3](https://github.com/sourceupcode/invoice-ninja-mcp/commit/c2574e3a5b9ca584a67fcd5b982b5001e68b6fd9))
+
 ## [0.6.1](https://github.com/sourceupcode/invoice-ninja-mcp/compare/v0.6.0...v0.6.1) (2026-11-24)
 
 

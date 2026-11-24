@@ -4,19 +4,40 @@ An MCP (Model Context Protocol) server for [Invoice Ninja](https://invoiceninja.
 
 ## Features
 
-26 tools across 7 categories:
+41 tools across 10 categories:
 
 **System**
 - `test-connection` - Verify API credentials and instance connectivity
+- `server-status` - Which build is running, and which tools its guard permits. Read-only, no API call
 
 **Invoices** (primary)
 - `list-invoices` - List/filter/search invoices
 - `get-invoice` - Get full invoice details with line items
+- `list-invoice-items` - List an invoice's line items with totals
 - `create-invoice` - Create draft invoices
-- `update-invoice` - Update invoice fields and line items
+- `update-invoice` - Update invoice fields; `line_items` replaces the whole array
+- `update-invoice-item` - Edit one existing line (cannot append: lines have no id)
+- `add-invoice-line` - Append one line without disturbing the others. Draft-only, requires confirmation of the amount change
 - `delete-invoice` - Soft-delete invoices
 - `send-invoice-email` - Email invoices to clients
 - `bulk-invoice-action` - Mark sent/paid, archive, cancel, clone to quote
+
+**Tasks**
+- `list-tasks` - List/filter tasks, with logged time computed from `time_log`
+- `list-invoice-tasks` - Tasks attached to one invoice
+- `get-task` - Full task detail including its time log (stamps labelled UTC)
+- `list-task-statuses` - Status hashed IDs for `status_id`
+- `create-task` - Create a task, optionally invoiced
+- `update-task` - Update a task; omitted fields are carried over, `time_log` is not
+- `delete-task` - Soft-delete a task
+- `bulk-task-action` - start/stop timers
+- `register-time-entries` - Log time by date and hours; creates a task per entry, which is why the ledger tools above are the ones to bill from
+
+**Projects**
+- `list-projects` - Project hashed IDs (needed for `project_id`; the API accepts a name and stores nothing)
+
+**Users**
+- `list-users` - User hashed IDs (needed for `assigned_user_id`)
 
 **Clients**
 - `list-clients` - List/search clients
@@ -45,6 +66,8 @@ An MCP (Model Context Protocol) server for [Invoice Ninja](https://invoiceninja.
 - `list-expenses` - List expenses
 - `get-expense` - Get expense details
 - `create-expense` - Create expense records
+
+Every mutating tool is refused unless the deployment names it in `INVOICE_NINJA_ALLOWED_TOOLS`. `server-status` prints the current answer for the build you are talking to.
 
 ## Configuration
 

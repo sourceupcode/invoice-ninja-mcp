@@ -114,6 +114,25 @@ jobs:
           newest="${tags[0]}"
           echo "newest release tag: $newest"
 
+          # One tag's build, chained so any step failing stops that tag only.
+          # Called from an `if`, where errexit is suspended, so the chain is
+          # written out instead of relying on set -e.
+          publish_tag() {
+            local tag="$1"
+            git checkout -f "$tag" &&
+            pnpm install --frozen-lockfile &&
+            # Tests run for the newest release only. Older tags are historical
+            # reproductions — several predate the test script, and requiring them
+            # to pass would block the version that is actually going to prod.
+            { if [ "$tag" = "$newest" ]; then pnpm test; fi; } &&
+            pnpm run build &&
+            podman build --platform linux/amd64 -f Containerfile \
+              -t "$IMAGE:$tag" -t "$IMAGE:${tag#v}" . &&
+            podman push "$IMAGE:$tag" &&
+            podman push "$IMAGE:${tag#v}"
+          }
+
+          failed=()
           for tag in "${tags[@]}"; do
             if has_image "$tag" 2>/dev/null; then
               echo "$tag: image already published"
@@ -123,27 +142,35 @@ jobs:
             echo "::group::publishing $tag"
             # Build from the tag itself, with that tag's own Containerfile, so
             # the image corresponds to the source that version shipped.
-            git checkout -f "$tag"
-            pnpm install --frozen-lockfile
-            # Tests run for the newest release only. Older tags are historical
-            # reproductions — several predate the test script, and requiring them
-            # to pass would block the version that is actually going to prod.
-            if [ "$tag" = "$newest" ]; then
-              pnpm test
+            if publish_tag "$tag"; then
+              echo "$tag: published"
+            else
+              failed+=("$tag")
+              echo "$tag: build failed"
             fi
-            pnpm run build
-            podman build --platform linux/amd64 -f Containerfile \
-              -t "$IMAGE:$tag" -t "$IMAGE:${tag#v}" .
-            podman push "$IMAGE:$tag"
-            podman push "$IMAGE:${tag#v}"
             echo "::endgroup::"
           done
 
-          # :latest tracks the highest release, not whatever was built last.
-          podman pull "$IMAGE:$newest"
-          podman tag "$IMAGE:$newest" "$IMAGE:latest"
-          podman push "$IMAGE:latest"
-          echo "latest -> $newest"
+          # A tag whose image could not be built is reported, not fatal: one
+          # unreproducible historical tag (a pinned download that has since
+          # moved) must not block the newest release's image, which is the one
+          # that deploys.
+          if [ "${#failed[@]}" -gt 0 ]; then
+            echo "::warning title=Images not published::${#failed[@]} tag(s) failed to build: ${failed[*]}"
+          fi
+
+          # :latest tracks the highest release, not whatever was built last. If
+          # the newest release has no image, that is a real failure: it is the
+          # version a Deployment would pin.
+          if has_image "$newest"; then
+            podman pull "$IMAGE:$newest"
+            podman tag "$IMAGE:$newest" "$IMAGE:latest"
+            podman push "$IMAGE:latest"
+            echo "latest -> $newest"
+          else
+            echo "::error title=Newest release has no image::$newest was not published; :latest left alone"
+            exit 1
+          fi
 
           # Leave the checkout where it started.
           git checkout -f "$origin_ref"

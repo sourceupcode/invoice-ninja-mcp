@@ -81,9 +81,19 @@ jobs:
           node-version: 26
           cache: pnpm
 
-      - name: Build the app (tsc -> dist/)
+      - name: Install dependencies
         run: |
           pnpm install --frozen-lockfile
+
+      # No CI job ran a single test before this: the release path built and
+      # published an image without executing one. The billing writes these
+      # tests pin are live-money writes, so a failing test now stops the image.
+      - name: Test
+        run: |
+          pnpm test
+
+      - name: Build the app (tsc -> dist/)
+        run: |
           pnpm run build
 
       # podman, not docker/build-push-action. The repo builds and pushes with

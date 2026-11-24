@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist-test",
+    "noEmit": false
+  },
+  "include": ["src/**/*"],
+  // The root tsconfig excludes tests so the published dist/ stays clean. Here
+  // they are compiled, because node's type stripping cannot resolve the ".js"
+  // specifiers the source uses — a test that imports "./update-task.tool.ts"
+  // would not resolve the module's own "./create-tool.js" import.
+  "exclude": ["node_modules", "dist", "dist-test"]
+}

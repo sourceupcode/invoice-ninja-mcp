@@ -83,12 +83,25 @@ export function checkTool(name: string): GuardResult {
   }
 
   if (DEFAULT_DENIED.includes(name)) {
+    const hints: string[] = [
+      `tool '${name}' is blocked by the write guard: this deployment runs with an unscoped ` +
+        `Invoice Ninja token, so mutating calls are refused in code.`,
+      `Report it to the operator as a blocked item: what the write would change and the amount ` +
+        `at stake. It is unblocked by naming '${name}' in INVOICE_NINJA_ALLOWED_TOOLS, which is ` +
+        `the operator's decision, not yours.`,
+      `Do not work around this refusal by calling the instance API directly.`,
+    ];
+    if (name === "update-invoice" || name === "update-invoice-item") {
+      hints.push(
+        `To add a line to an invoice, use add_invoice_line: it reads the invoice, inserts one ` +
+          `row and writes the array back. update_invoice replaces every line and its schema drops ` +
+          `task_id, date and unit_code from rows it never touched; update_invoice_item cannot ` +
+          `append, because invoice lines carry no id.`,
+      );
+    }
     return {
       allowed: false,
-      reason:
-        `tool '${name}' is blocked: this deployment runs with an unscoped Invoice Ninja ` +
-        `token, so mutating calls are refused in code. Set INVOICE_NINJA_ALLOW_WRITES=true ` +
-        `only if you accept full write access.`,
+      reason: hints.join(" "),
     };
   }
 

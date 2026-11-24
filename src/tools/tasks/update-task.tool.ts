@@ -28,7 +28,7 @@ export function buildUpdateTaskBody(
   const callerSuppliedLog = body.time_log !== undefined;
   if (!callerSuppliedLog) {
     body.time_log = existing.time_log ?? "";
-    carried.push(`time_log carried over unchanged (${parseTimeLog(body.time_log).length} entries)`);
+    carried.push(`time_log carried over from the task (${parseTimeLog(body.time_log).length} entries)`);
   }
   if (body.number === undefined && existing.number) body.number = existing.number;
   // The repository resets a non-numeric rate to 0 when none is supplied, so

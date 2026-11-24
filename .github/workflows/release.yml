@@ -125,6 +125,12 @@ jobs:
             # the image corresponds to the source that version shipped.
             git checkout -f "$tag"
             pnpm install --frozen-lockfile
+            # Tests run for the newest release only. Older tags are historical
+            # reproductions — several predate the test script, and requiring them
+            # to pass would block the version that is actually going to prod.
+            if [ "$tag" = "$newest" ]; then
+              pnpm test
+            fi
             pnpm run build
             podman build --platform linux/amd64 -f Containerfile \
               -t "$IMAGE:$tag" -t "$IMAGE:${tag#v}" .

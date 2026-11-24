@@ -18,7 +18,7 @@ test("omitted time_log is carried over from the task, not written empty", () => 
   const { body, carried } = buildUpdateTaskBody(EXISTING, { description: "new text" });
   assert.equal(typeof body.time_log, "string");
   assert.match(String(body.time_log), /1795060800/);
-  assert.ok(carried.some((c) => c.includes("time_log carried over unchanged (2 entries)")));
+  assert.ok(carried.some((c) => c.includes("time_log carried over from the task (2 entries)")));
 });
 
 test("a carried-over log still gets its empty notes filled for the weekly view", () => {

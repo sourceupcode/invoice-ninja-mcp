@@ -62,9 +62,9 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      # No version here: pnpm/action-setup@v4 refuses when both `version:` and package.json's
+      # `packageManager` are set. packageManager is the single source of truth.
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - uses: actions/setup-node@v4
         with:

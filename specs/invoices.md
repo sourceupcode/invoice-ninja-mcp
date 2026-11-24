@@ -108,7 +108,8 @@ Product named `C62` appeared.
 
 `list-invoice-items` prints `task <id>`, `product <key>` and `type <id>` on every row, so the "is this row a product or a
 task?" question is answerable without the UI. `update-invoice-item` takes `set_product_key` (an empty string clears it) and
-`set_type_id`.
+`set_type_id`; `add-invoice-line` takes `item_type_id` so a new row can be written with the
+same item type as the rows already on the invoice instead of the server default.
 
 ## Verification after a line edit
 

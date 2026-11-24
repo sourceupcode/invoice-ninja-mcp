@@ -130,3 +130,20 @@ test("an edit that moves the amount-to-line-sum gap is caught even when the tota
   assert.equal(problems.length, 1);
   assert.match(problems[0], /gap between the line total and the invoice amount moved/);
 });
+
+test("appendLineItem carries an explicit item type, and omits the key when none is given", () => {
+  const withType = appendLineItem([], {
+    notes: "INF-9 (2026-11-25): work",
+    quantity: 1,
+    cost: 175,
+    task_id: "T9",
+    unit_code: "C62",
+    product_key: "Infrastructure",
+    type_id: "2",
+  });
+  assert.equal(withType[0].type_id, "2");
+  assert.equal(withType[0].product_key, "Infrastructure");
+
+  const without = appendLineItem([], { notes: "b", quantity: 1, cost: 175 });
+  assert.ok(!("type_id" in without[0]), "no key at all, so the server default applies untouched");
+});

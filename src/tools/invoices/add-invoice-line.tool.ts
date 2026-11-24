@@ -31,6 +31,12 @@ const AddInvoiceLineTool = createTool(
     unit_code: z.string().optional().describe("Unit code, e.g. HUR"),
     task_id: z.string().optional().describe("Task hashed ID to link this line to"),
     product_key: z.string().optional().describe("Product key/name"),
+    item_type_id: z
+      .string()
+      .optional()
+      .describe(
+        "Line item type id. Omit to take the server default, which renders differently from the rows already on the invoice; read a few rows with list-invoice-items and pass the value they use so the new row looks like them.",
+      ),
     after_line: z
       .number()
       .int()
@@ -58,6 +64,7 @@ const AddInvoiceLineTool = createTool(
       unit_code,
       task_id,
       product_key,
+      item_type_id,
       after_line,
       append_private_notes,
       confirm_amount_change,
@@ -85,7 +92,7 @@ const AddInvoiceLineTool = createTool(
       };
     }
 
-    const line: NewLineItem = { notes, quantity, cost, date, unit_code, task_id, product_key };
+    const line: NewLineItem = { notes, quantity, cost, date, unit_code, task_id, product_key, type_id: item_type_id };
 
     let newItems: Array<Record<string, unknown>>;
     try {

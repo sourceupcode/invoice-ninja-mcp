@@ -116,6 +116,7 @@ export interface NewLineItem {
   unit_code?: string;
   task_id?: string;
   product_key?: string;
+  type_id?: string;
 }
 
 /**
@@ -137,6 +138,7 @@ export function appendLineItem(
   if (line.date !== undefined) row.date = line.date;
   if (line.unit_code !== undefined) row.unit_code = line.unit_code;
   if (line.task_id !== undefined) row.task_id = line.task_id;
+  if (line.type_id !== undefined) row.type_id = line.type_id;
   if (line.product_key !== undefined) row.product_key = line.product_key;
 
   if (afterLine === undefined) {

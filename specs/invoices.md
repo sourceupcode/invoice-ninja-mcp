@@ -86,13 +86,44 @@ Every invoice response includes:
 | `create-invoice` | POST /invoices | Create draft with line items |
 | `update-invoice` | PUT /invoices/:id | Update fields (line_items replaces) |
 | `add-invoice-line` | GET+PUT /invoices/:id | Append one line item without replacing existing ones; Draft only |
+| `list-invoice-items` | GET /invoices/:id?include=client | Every row with date, qty, unit, rate, amount, task, product key and item type |
+| `update-invoice-item` | GET+PUT /invoices/:id | Edit one row by selector, read-modify-write, verified by re-read |
 | `delete-invoice` | DELETE /invoices/:id | Soft-delete |
 | `send-invoice-email` | POST /emails | Email to client, marks as sent |
 | `bulk-invoice-action` | POST /invoices/bulk | mark_sent, mark_paid, archive, restore, delete, cancel, clone_to_quote |
 
+## Line item identity: task, product key, item type
+
+A line item can be backed three ways at once, and they are independent fields:
+
+- `task_id` — the task whose time the row bills.
+- `product_key` — a key into the **Products** entity. A key that does not exist makes Invoice Ninja create a Product: this
+  account has two such products (`Infrastructure` and `C62`), each holding the text of an invoice row as its notes.
+- `type_id` — a numeric item type the client renders the row by. Rows added through `add-invoice-line` carry `type_id 1`,
+  older hand-written rows carry `type_id 2` (observed on invoice 0002, 2026-11-24; the API does not document the meaning of
+  the numbers, so the value is reported rather than interpreted).
+
+`unit_code` is not `product_key`: `C62` in `unit_code` is the UN/CEFACT hour code. Someone put it in `product_key` and a
+Product named `C62` appeared.
+
+`list-invoice-items` prints `task <id>`, `product <key>` and `type <id>` on every row, so the "is this row a product or a
+task?" question is answerable without the UI. `update-invoice-item` takes `set_product_key` (an empty string clears it) and
+`set_type_id`.
+
+## Verification after a line edit
+
+`update-invoice-item` re-reads the invoice and checks three things: the field it set stuck; the re-read line total equals
+what the edit should have produced; and the gap between the line total and `invoice.amount` did not move. It does **not**
+require the line total to equal `invoice.amount`. A real invoice keeps a cent between them — 0002 totals 16009.56 across its
+rows against an amount of 16009.57 — from invoice-level tax/discount and rounding on four-decimal hour quantities. An
+earlier version demanded equality, so every successful edit on 0002 came back as `VERIFICATION FAILED`: a false alarm on a
+money-bearing invoice, which is the worst kind, and such a gap is now reported as a note instead.
+
 ## Current State
 
-All 7 tools fully implemented and functional.
+All 9 tools above are implemented and functional. Line-item edits go through
+`add-invoice-line` or `update-invoice-item`; `update-invoice` replaces the whole
+array and drops `task_id`, `date` and `unit_code`, so it is not the way to change a row.
 
 ## Out of Scope
 

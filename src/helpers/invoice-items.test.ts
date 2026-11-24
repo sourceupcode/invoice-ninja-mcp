@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { appendLineItem, appendPrivateNote, addLineGuard } from "./invoice-items.js";
+import { appendLineItem, appendPrivateNote, addLineGuard, checkEdit, formatLineItems } from "./invoice-items.js";
 
 test("appendLineItem leaves existing rows untouched", () => {
   const items = [{
@@ -77,4 +77,56 @@ test("appendLineItem omits keys that were not supplied", () => {
 test("appendPrivateNote joins or starts the note", () => {
   assert.equal(appendPrivateNote("old", "new"), "old\nnew");
   assert.equal(appendPrivateNote(undefined, "new"), "new");
+});
+
+test("a row's backing is printed: task, product key and item type are all visible", () => {
+  const rows = formatLineItems([
+    { date: "2026-11-20", quantity: 1.5, cost: 175, notes: "INF-1 (2026-11-20): work", task_id: "T1", unit_code: "C62" },
+    { date: "2026-11-20", quantity: 1, cost: 175, notes: "day line", product_key: "Infrastructure", type_id: "2" },
+    { date: "2026-11-21", quantity: 2, cost: 175, notes: "task row rendered as a product", task_id: "T2", type_id: "1" },
+  ]);
+  assert.match(rows[0], /task T1/);
+  assert.ok(!/product /.test(rows[0]), "no product key, no product field");
+  assert.match(rows[1], /product Infrastructure/);
+  assert.match(rows[1], /type 2/);
+  assert.match(rows[2], /task T2/);
+  assert.match(rows[2], /type 1/, "a task-backed row whose item type says otherwise must be visible");
+});
+
+test("a pre-existing cent between the line sum and the invoice amount is a note, not a failure", () => {
+  // Invoice 0002: line items total 16009.56 while invoice.amount is 16009.57.
+  const { problems, notes } = checkEdit({
+    totalBefore: 16009.56,
+    totalExpected: 16009.56,
+    totalVerified: 16009.56,
+    amountBefore: 16009.57,
+    amountAfter: 16009.57,
+  });
+  assert.deepEqual(problems, [], "an unchanged one-cent gap must not fail a successful edit");
+  assert.equal(notes.length, 1);
+  assert.match(notes[0], /pre-existing and unchanged/);
+});
+
+test("a line total the server did not store is still a failure", () => {
+  const { problems } = checkEdit({
+    totalBefore: 16009.56,
+    totalExpected: 16184.56,
+    totalVerified: 16009.56,
+    amountBefore: 16009.57,
+    amountAfter: 16009.57,
+  });
+  assert.equal(problems.length, 1);
+  assert.match(problems[0], /does not match the 16184\.56/);
+});
+
+test("an edit that moves the amount-to-line-sum gap is caught even when the total looks right", () => {
+  const { problems } = checkEdit({
+    totalBefore: 1000,
+    totalExpected: 1000,
+    totalVerified: 1000,
+    amountBefore: 1000,
+    amountAfter: 1175,
+  });
+  assert.equal(problems.length, 1);
+  assert.match(problems[0], /gap between the line total and the invoice amount moved/);
 });

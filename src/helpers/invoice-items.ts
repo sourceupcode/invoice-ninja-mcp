@@ -11,6 +11,7 @@ export interface LineItemLike {
   cost?: unknown;
   notes?: unknown;
   product_key?: unknown;
+  type_id?: unknown;
   date?: unknown;
   task_id?: unknown;
   unit_code?: unknown;
@@ -33,7 +34,15 @@ function money(n: number): string {
   return n.toFixed(2);
 }
 
-/** One readable row per line item, numbered, with date / qty x cost = amount. */
+/**
+ * One readable row per line item, numbered, with date / qty x cost = amount.
+ *
+ * A row can be backed by a task, by a product key, by both, or by neither, and the
+ * client decides which it is. The v5 line item also carries a numeric `type_id` that
+ * the UI uses to render the row; the two are independent, which is how an invoice
+ * ends up "showing products and tasks" while every row also names a task. All three
+ * are printed so the question is answerable from the read surface alone.
+ */
 export function formatLineItems(items: LineItemLike[]): string[] {
   return items.map((item, index) => {
     const parts: string[] = [];
@@ -45,8 +54,58 @@ export function formatLineItems(items: LineItemLike[]): string[] {
     const notes = String(item.notes ?? "").trim();
     if (notes) parts.push(notes);
     if (item.task_id) parts.push(`task ${String(item.task_id)}`);
+    if (item.product_key) parts.push(`product ${String(item.product_key)}`);
+    if (item.type_id) parts.push(`type ${String(item.type_id)}`);
     return `  ${String(index + 1).padStart(2, " ")}. ${parts.join("  |  ")}`;
   });
+}
+
+export interface EditCheck {
+  /** Line-item total before the edit, computed locally from the rows just read. */
+  totalBefore: number;
+  /** Line-item total the edit should produce, computed locally. */
+  totalExpected: number;
+  /** Line-item total after re-reading the invoice from the server. */
+  totalVerified: number;
+  /** `invoice.amount` before and after. */
+  amountBefore: number;
+  amountAfter: number;
+}
+
+/**
+ * Did the edit land?
+ *
+ * The check compares the re-read line total against the total the edit was expected
+ * to produce, and checks that the gap between the line total and `invoice.amount`
+ * did not move. It deliberately does NOT require the line total to equal
+ * `invoice.amount`: invoice-level tax, discounts and accumulated rounding on
+ * fractional hours leave a cent between them on a real invoice (invoice 0002 has
+ * one), and demanding equality made every successful edit on that invoice report a
+ * failure. A check that always cries wolf hides the one that is real.
+ */
+export function checkEdit(check: EditCheck): { problems: string[]; notes: string[] } {
+  const problems: string[] = [];
+  const notes: string[] = [];
+
+  if (Math.abs(check.totalVerified - check.totalExpected) > 0.01) {
+    problems.push(
+      `line total ${check.totalVerified.toFixed(2)} does not match the ${check.totalExpected.toFixed(2)} this edit should have produced`,
+    );
+  }
+
+  const gapBefore = check.amountBefore - check.totalBefore;
+  const gapAfter = check.amountAfter - check.totalVerified;
+  if (Math.abs(gapAfter - gapBefore) > 0.009) {
+    problems.push(
+      `the gap between the line total and the invoice amount moved ${gapBefore.toFixed(2)} -> ${gapAfter.toFixed(2)}`,
+    );
+  } else if (Math.abs(gapBefore) > 0.009) {
+    notes.push(
+      `note: invoice amount ${check.amountBefore.toFixed(2)} is ${Math.abs(gapBefore).toFixed(2)} away from the line sum; pre-existing and unchanged by this edit`,
+    );
+  }
+
+  return { problems, notes };
 }
 
 export interface NewLineItem {
@@ -123,6 +182,9 @@ export function reconcile(items: LineItemLike[], invoiceAmount: unknown): string
   const ok = delta < 0.01;
   return (
     `${items.length} line item(s) totalling ${money(total)}; invoice amount ${money(amount)} — ` +
-    (ok ? "reconciled" : `MISMATCH of ${money(delta)}`)
+    (ok
+      ? "reconciled"
+      : `off by ${money(delta)}: invoice-level tax/discount or rounding on fractional-hour quantities. `
+        + `The amount is what the client is billed.`)
   );
 }

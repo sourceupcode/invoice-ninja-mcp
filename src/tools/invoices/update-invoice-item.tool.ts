@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createTool } from "../../helpers/create-tool.js";
 import { apiGet, apiPut } from "../../client/api-client.js";
-import { itemAmount, lineItemsTotal } from "../../helpers/invoice-items.js";
+import { itemAmount, lineItemsTotal, checkEdit } from "../../helpers/invoice-items.js";
 
 // Edit ONE invoice line item.
 //
@@ -24,7 +24,7 @@ import { itemAmount, lineItemsTotal } from "../../helpers/invoice-items.js";
 
 const UpdateInvoiceItemTool = createTool(
   "update-invoice-item",
-  "Edit a single invoice line item (notes, quantity, cost, product key, date, unit). Identifies one line by position and/or date, task or note text, and refuses ambiguous matches or unintended amount changes.",
+  "Edit a single invoice line item (notes, quantity, cost, product key, item type, date, unit). Identifies one line by position and/or date, task or note text, and refuses ambiguous matches or unintended amount changes.",
   {
     invoice_id: z.string().describe("The hashed invoice ID"),
     line: z
@@ -43,7 +43,16 @@ const UpdateInvoiceItemTool = createTool(
     set_notes: z.string().optional().describe("New notes/description for the line"),
     set_quantity: z.number().optional().describe("New quantity (hours)"),
     set_cost: z.number().optional().describe("New unit cost/rate"),
-    set_product_key: z.string().optional().describe("New product key"),
+    set_product_key: z
+      .string()
+      .optional()
+      .describe("New product key. An empty string clears it — use that to stop a task-backed row presenting as a product."),
+    set_type_id: z
+      .string()
+      .optional()
+      .describe(
+        "New line item type id. Read the current value with list-invoice-items first: this account has rows with type 1 and type 2, and the value decides how the client renders the row.",
+      ),
     set_date: z.string().optional().describe("New date, YYYY-MM-DD"),
     set_unit_code: z.string().optional().describe("New unit code, e.g. HUR"),
 
@@ -142,6 +151,7 @@ const UpdateInvoiceItemTool = createTool(
       quantity: target.quantity,
       cost: target.cost,
       product_key: target.product_key,
+      type_id: target.type_id,
       unit_code: target.unit_code,
       notes: target.notes,
     };
@@ -173,8 +183,6 @@ const UpdateInvoiceItemTool = createTool(
         isError: true,
       };
     }
-
-    const expectedAmount = Number(invoice.amount ?? 0) + totalDelta;
 
     const write = await apiPut<{ data: Record<string, unknown> }>(`/invoices/${invoice_id}`, {
       line_items: items,
@@ -220,9 +228,14 @@ const UpdateInvoiceItemTool = createTool(
       }
     }
     const verifiedTotal = lineItemsTotal(verifiedItems);
-    if (Math.abs(verifiedTotal - expectedAmount) > 0.01) {
-      problems.push(`line total ${verifiedTotal.toFixed(2)} does not match expected amount ${expectedAmount.toFixed(2)}`);
-    }
+    const check = checkEdit({
+      totalBefore,
+      totalExpected: totalAfter,
+      totalVerified: verifiedTotal,
+      amountBefore: Number(invoice.amount ?? 0),
+      amountAfter: Number(verified.amount ?? 0),
+    });
+    problems.push(...check.problems);
 
     const beforeLines = Object.entries(beforeSnapshot)
       .filter(([k]) => sets[`set_${k}` as keyof typeof sets] !== undefined)
@@ -238,6 +251,7 @@ const UpdateInvoiceItemTool = createTool(
         .map(([k, v]) => `  ${k.replace(/^set_/, "")}: ${JSON.stringify(v)}`),
       "",
       `line amount ${amountBefore.toFixed(2)} -> ${amountAfter.toFixed(2)}; invoice total ${totalBefore.toFixed(2)} -> ${verifiedTotal.toFixed(2)}`,
+      ...check.notes,
       problems.length
         ? `VERIFICATION FAILED: ${problems.join("; ")}`
         : `verified: ${verifiedItems.length} line items, total ${verifiedTotal.toFixed(2)}, amount ${verified.amount}`,

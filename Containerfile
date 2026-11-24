@@ -55,12 +55,16 @@ ARG PNPM_VERSION=9.15.9
 FROM alpine:3.24 AS deps
 
 ARG NODE_VERSION=26.13.0
+# The download uses the versioned dist path, not latest-vN.x: that directory keeps
+# only the newest release, so pinning a version and fetching from it 404s the day a
+# patch lands (26.13.0 disappeared on 2026-11-24 and every image build failed). The
+# versioned path is immutable, which is what makes the sha256 pin below meaningful.
 ARG NODE_SHA256=1cae5273e14d36ddb0e605bbcde602bbad9f72301c66afbc94fa764220d9d9f5
 ARG PNPM_VERSION
 RUN apk upgrade --no-cache && \
     apk add --no-cache libstdc++ libatomic && \
     wget -qO /tmp/node.tar.xz \
-      "https://nodejs.org/dist/latest-v26.x/node-v${NODE_VERSION}-linux-x64-musl.tar.xz" && \
+      "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64-musl.tar.xz" && \
     echo "${NODE_SHA256}  /tmp/node.tar.xz" | sha256sum -c - && \
     tar -xJf /tmp/node.tar.xz -C /opt && \
     mv /opt/node-v"${NODE_VERSION}"-linux-x64-musl /opt/node && \

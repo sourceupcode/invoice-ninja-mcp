@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.6.0](https://github.com/sourceupcode/invoice-ninja-mcp/compare/v0.5.1...v0.6.0) (2026-11-24)
+
+
+### Features
+
+* **invoices:** add add-invoice-line for safe line appends ([dd09ec1](https://github.com/sourceupcode/invoice-ninja-mcp/commit/dd09ec1f5a215e85f905cf33185d716213cc6a8e))
+* **invoices:** add line-append helper and add-line guards ([a501224](https://github.com/sourceupcode/invoice-ninja-mcp/commit/a5012245b050381531052d4139bfa4f742ef0494))
+* **tools:** add list-projects, list-users and server-status ([48aa92a](https://github.com/sourceupcode/invoice-ninja-mcp/commit/48aa92a23f2b40bb41bc99279f258e2ac24fed88))
+
+
+### Bug Fixes
+
+* **ci:** test the newest release image in the backfill path, and word one report precisely ([c5f26df](https://github.com/sourceupcode/invoice-ninja-mcp/commit/c5f26df79bdb0736b84c7f960332ade786d69511))
+* **guard:** default-deny add-invoice-line alongside the other invoice mutations ([61a2b6c](https://github.com/sourceupcode/invoice-ninja-mcp/commit/61a2b6c298a7c076fb8912661608ec076f67c170))
+* **guard:** route a refused write to the operator instead of ending the request ([1938508](https://github.com/sourceupcode/invoice-ninja-mcp/commit/19385084d5d24cf3e91fe09203d8d60211bd694f))
+* **tasks:** stop rewriting a supplied time_log and borrow client_id for invoice_id ([8268572](https://github.com/sourceupcode/invoice-ninja-mcp/commit/8268572a8eaeab72612c30a81c4bc8998a4104b7))
+
 ## [0.5.1](https://github.com/sourceupcode/invoice-ninja-mcp/compare/v0.5.0...v0.5.1) (2026-11-11)
 
 

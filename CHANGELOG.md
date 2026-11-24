@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.1](https://github.com/sourceupcode/invoice-ninja-mcp/compare/v0.6.0...v0.6.1) (2026-11-24)
+
+
+### Bug Fixes
+
+* **containerfile:** fetch Node from the versioned dist path ([7c617a8](https://github.com/sourceupcode/invoice-ninja-mcp/commit/7c617a8f027ae8fe2712689d0c255198f981df8f))
+* **release:** one unbuildable historical tag must not block the newest image ([a88402a](https://github.com/sourceupcode/invoice-ninja-mcp/commit/a88402ad0410941f2058df114147b9b698721052))
+
 ## [0.6.0](https://github.com/sourceupcode/invoice-ninja-mcp/compare/v0.5.1...v0.6.0) (2026-11-24)
 
 
